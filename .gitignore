@@ -1,6 +1,6 @@
- *.classpath
-        *.project
-        settings/
-        bin/
-        readme.txt
-        test.txt
+.classpath
+.project
+.settings/
+bin/
+*.txt
+
