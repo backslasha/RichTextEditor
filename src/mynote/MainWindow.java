@@ -1,9 +1,11 @@
 package mynote;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FileDialog;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -12,15 +14,16 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -33,8 +36,14 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
+import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.StyledEditorKit;
 
@@ -52,25 +61,21 @@ public class MainWindow {
 	private JMenuBar mJMenuBar;
 	private JTabbedPane mJTabbedPane;
 	private JLabel mJLabel;
-
+	private JSplitPane mJSplitPane_lr;
+	private JToolBar mJToolBar;
+	//private JTextPane mSelectedTabNotePane;
+	private JButton button_undo,button_redo,button_save;
+	
 	public MainWindow() {
 		mJFrame = new JFrame();
-		initJMenuBar();
-		initJList();
-		initJTabbedPane();
-		initJLabel();
 
-		JSplitPane jSplitPane_tb = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-				false, mJTabbedPane, mJLabel);
-		jSplitPane_tb.setDividerSize(3);
-
-		JSplitPane jSplitPane_lr = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-				false, new JScrollPane(mJList), jSplitPane_tb);
-		jSplitPane_lr.setDividerSize(3);
+		mJSplitPane_lr = createJSplitPane_lr();
 
 		mContainer = mJFrame.getContentPane();
-		mContainer.add(jSplitPane_lr);
+		mContainer.add(mJSplitPane_lr, BorderLayout.CENTER);
+		mContainer.add(mJToolBar, BorderLayout.NORTH);
 
+		initJMenuBar();
 		mJFrame.setJMenuBar(mJMenuBar);
 		mJFrame.setTitle("MyNote");
 		mJFrame.setSize(400 + 600, 600);
@@ -82,6 +87,23 @@ public class MainWindow {
 				System.exit(1);
 			}
 		});
+	}
+
+	private JSplitPane createJSplitPane_lr() {
+		initJList();
+		initJTabbedPane();
+		initJLabel();
+		initJToolBar();
+
+		JSplitPane jSplitPane_tb = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+				false, mJTabbedPane, mJLabel);
+		jSplitPane_tb.setDividerSize(3);
+
+		JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+				false, new JScrollPane(mJList), jSplitPane_tb);
+		jSplitPane.setDividerSize(3);
+
+		return jSplitPane;
 	}
 
 	private void initJLabel() {
@@ -152,7 +174,6 @@ public class MainWindow {
 		addJMenu_about();
 		addJMenu_setting();
 		addJMenu_style();
-
 	}
 
 	private void addJMenu_setting() {
@@ -218,6 +239,8 @@ public class MainWindow {
 						.getSelectedComponent()).getViewport().getView();
 				if (nat.undoManager.canUndo()) {
 					nat.undoManager.undo();
+				}else {
+					System.out.println("nat.undoManager.canUndo():"+nat.undoManager.canUndo());
 				}
 			}
 		});
@@ -270,7 +293,6 @@ public class MainWindow {
 				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
 						.getSelectedComponent()).getViewport().getView();
 				nat.selectAll();
-
 			}
 		});
 
@@ -290,111 +312,19 @@ public class MainWindow {
 		JMenu jMenu_file = new JMenu("文件(F)");
 		jMenu_file.setMnemonic('F');
 
-		JMenuItem item_new = new JMenuItem("新建");
-		JMenuItem item_open = new JMenuItem("打开");
-		JMenuItem item_store = new JMenuItem("保存");
-		JMenuItem item_choose_workplace = new JMenuItem("工作区");
-
+		JMenuItem item_new = new JMenuItem(new NewFileAction());
+		JMenuItem item_open = new JMenuItem(new OpenFileAction());
+		JMenuItem item_store = new JMenuItem(new SaveFileAction());
+		JMenuItem item_choose_workplace = new JMenuItem(new ChooseWorkPlaceAction());
+		
+		item_new.setText("新建");
+		item_open.setText("打开");
+		item_store.setText("保存");
+		item_choose_workplace.setText("工作区");
+		
 		item_new.setAccelerator(KeyStroke.getKeyStroke("ctrl N"));
 		item_open.setAccelerator(KeyStroke.getKeyStroke("ctrl O"));
 		item_store.setAccelerator(KeyStroke.getKeyStroke("ctrl S"));
-
-		item_store.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				JScrollPane scp = (JScrollPane) mJTabbedPane
-						.getSelectedComponent();
-				Note note = ((NoteTextPane) scp.getViewport().getView())
-						.getNote();
-				if (note.getFile() != null) {
-					/*FileOutputStream fileOutputStream;
-					try {
-						fileOutputStream = new FileOutputStream(note
-								.getFilePath());
-						fileOutputStream.write(((NoteTextArea) scp
-								.getViewport().getView()).getText().getBytes());
-						fileOutputStream.close();
-						System.out.println("保存成功");
-					} catch (Exception e) {
-						e.printStackTrace();
-						System.out.println("保存失败");
-					}*/
-					NoteTextPane ntp = (NoteTextPane) scp.getViewport().getView();
-					saveAsObj(ntp.getStyledDocument(), note.getFilePath());
-
-				}
-			}
-		});
-		item_open.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				FileDialog fileDialog = new FileDialog(mJFrame, "选择文件");
-				fileDialog.setFilenameFilter(new FilenameFilter() {
-
-					public boolean accept(File arg0, String arg1) {
-						if (arg1.matches(".+.yhb"))
-							return true;
-						return false;
-					}
-				});
-				fileDialog.setVisible(true);
-				
-
-				File file = null;
-				if (fileDialog.getFile() != null) {
-					file = new File(fileDialog.getDirectory(), fileDialog
-							.getFile());
-					Note note = new Note();
-					note.setFilePath(file.getAbsolutePath());
-					note.setTitle(file.getName());
-					note.setFile(file);
-
-					addNoteTab(note);
-
-					mJListAdapter.addNote(note);
-					mJList.setModel(mJListAdapter);
-					mJList.updateUI();
-				} else {
-					System.out.println("文件不存在！");
-				}
-			}
-		});
-		item_new.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				String input = JOptionPane.showInputDialog(mJFrame, "输入文本标题：",
-						"", JOptionPane.PLAIN_MESSAGE);
-
-				if (input != null) {
-					String title = !input.equals("") ? input : "未命名文本";
-					Note note = new Note(title + ".yhb", mJListAdapter
-							.getWorkplace() + title + ".yhb");
-					addNoteTab(note);
-
-					mJListAdapter.addNote(note);
-					mJList.setModel(mJListAdapter);
-					mJList.updateUI();
-
-				}
-
-			}
-		});
-		item_choose_workplace.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent arg0) {
-				JFileChooser chooser = new JFileChooser();
-				chooser.setVisible(true);
-				chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				int result = chooser.showOpenDialog(mJFrame);
-				if (result == JFileChooser.APPROVE_OPTION) {
-					mJListAdapter = new JListAdapter(chooser.getSelectedFile()
-							.getAbsolutePath() + "\\");
-					mJList.setBorder(BorderFactory.createTitledBorder("所有笔记"
-							+ "(" + mJListAdapter.getWorkplace() + ")"));
-
-					mJList.setModel(mJListAdapter);
-					mJList.updateUI();
-				}
-
-			}
-		});
 
 		jMenu_file.add(item_new);
 		jMenu_file.add(item_open);
@@ -445,15 +375,42 @@ public class MainWindow {
 		mJMenuBar.add(jMenu_style);
 	}
 
-	private void addNoteTab(Note note) {
-		NoteTextPane nTextArea = new NoteTextPane(note);
-		JScrollPane jsp = new JScrollPane(nTextArea);
-		jsp.setRowHeaderView(new RowHeaderNumberView(nTextArea));
-		mJTabbedPane.addTab(nTextArea.getNote().getTitle(), jsp);
+	protected void addNoteTab(Note note) {
+		NoteTextPane nTextPane = new NoteTextPane(note);
+		JScrollPane jsp = new JScrollPane(nTextPane);
+		jsp.setRowHeaderView(new RowHeaderNumberView(nTextPane));
+		mJTabbedPane.addTab(nTextPane.getNote().getTitle(), jsp);
 		mJTabbedPane.setSelectedComponent(jsp);
-	}
+	/*	mSelectedTabNotePane = nTextPane;
+		mSelectedTabNotePane.getStyledDocument().addDocumentListener(new DocumentListener() {
+			
+			public void removeUpdate(DocumentEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void insertUpdate(DocumentEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void changedUpdate(DocumentEvent arg0) {
+				if(!button_save.isEnabled()){
+					button_save.setEnabled(true);
+				}
+			}
+		});
+		mSelectedTabNotePane.getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
+			
+			public void undoableEditHappened(UndoableEditEvent arg0) {
+				if(!button_undo.isEnabled()){
+					button_undo.setEnabled(true);
+				}
+			}
+		});
+	*/}
 
-	private void saveAsObj(StyledDocument doc, String completePath) {
+	protected void saveAsObj(StyledDocument doc, String completePath) {
 		File file = new File(completePath);
 		if (file.exists()) {
 			try {
@@ -471,5 +428,212 @@ public class MainWindow {
 		}
 	}
 
+	private void initJToolBar() {
+		mJToolBar = new JToolBar();
+		mJToolBar.setFloatable(false);
+		
+		JButton button = null;
+		// new a file button
+		button = new JButton(new NewFileAction());
+		button.setToolTipText("新建");
+		button.setBorderPainted(false);
+		button.setFocusPainted(false);
+		button.setIcon(new ImageIcon("D:\\javasoft\\workplace\\MyNote/src/img/new.png"));
+		mJToolBar.add(button);
+
+		// open a file button
+		button = new JButton(new OpenFileAction());
+		button.setToolTipText("打开");
+		button.setIcon(new ImageIcon("D:\\javasoft\\workplace\\MyNote/src/img/open.png"));
+		button.setBorderPainted(false);
+		button.setFocusPainted(false);
+		mJToolBar.add(button);
+
+		// save a file button
+		button_save = new JButton(new SaveFileAction());
+		button.setEnabled(false);
+		button.setIcon(new ImageIcon("D:\\javasoft\\workplace\\MyNote/src/img/save.png"));
+		button.setToolTipText("保存");
+		button.setBorderPainted(false);
+		button.setFocusPainted(false);
+		mJToolBar.add(button);
+		
+		// undo button
+		button_undo= new JButton(new UndoAction());
+		button.setEnabled(false);
+		button.setIcon(new ImageIcon("D:\\javasoft\\workplace\\MyNote/src/img/undo.png"));
+		button.setToolTipText("撤销");
+		button.setBorderPainted(false);
+		button.setFocusPainted(false);
+		mJToolBar.add(button);
+		
+		// redo button
+		button_redo = new JButton(new RedoAction());
+		button.setEnabled(false);
+		button.setIcon(new ImageIcon("D:\\javasoft\\workplace\\MyNote/src/img/redo.png"));
+		button.setToolTipText("重做");
+		button.setBorderPainted(false);
+		button.setFocusPainted(false);
+		mJToolBar.add(button);
+		
+	}
 	
+	class NewFileAction extends AbstractAction{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void actionPerformed(ActionEvent arg0) {
+			String input = JOptionPane.showInputDialog(mJFrame, "输入文本标题：",
+					"", JOptionPane.PLAIN_MESSAGE);
+
+			if (input != null) {
+				String title = !input.equals("") ? input : "未命名文本";
+				Note note = new Note(title + ".yhb", mJListAdapter
+						.getWorkplace() + title + ".yhb");
+				addNoteTab(note);
+
+				mJListAdapter.addNote(note);
+				mJList.setModel(mJListAdapter);
+				mJList.updateUI();
+
+			}
+			
+		}
+		
+	}
+	class OpenFileAction extends AbstractAction{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void actionPerformed(ActionEvent arg0) {
+			FileDialog fileDialog = new FileDialog(mJFrame, "选择文件");
+			fileDialog.setFilenameFilter(new FilenameFilter() {
+
+				public boolean accept(File arg0, String arg1) {
+					if (arg1.matches(".+.yhb"))
+						return true;
+					return false;
+				}
+			});
+			fileDialog.setVisible(true);
+
+			File file = null;
+			if (fileDialog.getFile() != null) {
+				file = new File(fileDialog.getDirectory(), fileDialog
+						.getFile());
+				Note note = new Note();
+				note.setFilePath(file.getAbsolutePath());
+				note.setTitle(file.getName());
+				note.setFile(file);
+
+				addNoteTab(note);
+
+				mJListAdapter.addNote(note);
+				mJList.setModel(mJListAdapter);
+				mJList.updateUI();
+			} else {
+				System.out.println("文件不存在！");
+			}
+		}
+		
+	}
+	class SaveFileAction extends AbstractAction{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void actionPerformed(ActionEvent arg0) {
+			JScrollPane scp = (JScrollPane) mJTabbedPane
+					.getSelectedComponent();
+			Note note = ((NoteTextPane) scp.getViewport().getView())
+					.getNote();
+			if (note.getFile() != null) {
+				/*
+				 * FileOutputStream fileOutputStream; try { fileOutputStream
+				 * = new FileOutputStream(note .getFilePath());
+				 * fileOutputStream.write(((NoteTextArea) scp
+				 * .getViewport().getView()).getText().getBytes());
+				 * fileOutputStream.close(); System.out.println("保存成功"); }
+				 * catch (Exception e) { e.printStackTrace();
+				 * System.out.println("保存失败"); }
+				 */
+				NoteTextPane ntp = (NoteTextPane) scp.getViewport()
+						.getView();
+				saveAsObj(ntp.getStyledDocument(), note.getFilePath());
+
+			}
+		}
+		
+	}
+	class ChooseWorkPlaceAction extends AbstractAction{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void actionPerformed(ActionEvent arg0) {
+			JFileChooser chooser = new JFileChooser();
+			chooser.setVisible(true);
+			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			int result = chooser.showOpenDialog(mJFrame);
+			if (result == JFileChooser.APPROVE_OPTION) {
+				mJListAdapter = new JListAdapter(chooser.getSelectedFile()
+						.getAbsolutePath() + "\\");
+				mJList.setBorder(BorderFactory.createTitledBorder("所有笔记"
+						+ "(" + mJListAdapter.getWorkplace() + ")"));
+
+				mJList.setModel(mJListAdapter);
+				mJList.updateUI();
+			}
+		}
+		
+	}
+	class UndoAction extends AbstractAction{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void actionPerformed(ActionEvent arg0) {
+			NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
+					.getSelectedComponent()).getViewport().getView();
+			if (nat.undoManager.canUndo()) {
+				nat.undoManager.undo();
+			}
+			
+		}
+		
+	}
+	class RedoAction extends AbstractAction{
+		
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+		
+		public void actionPerformed(ActionEvent arg0) {
+			NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
+					.getSelectedComponent()).getViewport().getView();
+			if (nat.undoManager.canRedo()) {
+				nat.undoManager.redo();
+				if (nat.undoManager.canRedo()) {
+					((JButton)(arg0.getSource())).setEnabled(true);
+				}else{
+					((JButton)(arg0.getSource())).setEnabled(false);
+				}
+			}
+			
+		}
+		
+	}
 }

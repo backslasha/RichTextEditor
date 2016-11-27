@@ -7,9 +7,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
-import javax.swing.text.Utilities;
 
 public class RowHeaderNumberView extends JTextArea {
 

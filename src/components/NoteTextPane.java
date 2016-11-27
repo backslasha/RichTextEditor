@@ -5,10 +5,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Scanner;
 
 import javax.swing.JTextPane;
 import javax.swing.event.UndoableEditEvent;
@@ -33,10 +31,13 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 
 	public NoteTextPane(Note note) {
 		mNote = note;
-		undoManager = new UndoManager();
-		this.getDocument().addUndoableEditListener(new UndoableEditListener() {
+		
+		undoManager =new UndoManager();
+		getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
+			
 			public void undoableEditHappened(UndoableEditEvent arg0) {
 				undoManager.addEdit(arg0.getEdit());
+				
 			}
 		});
 
