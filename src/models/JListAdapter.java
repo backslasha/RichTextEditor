@@ -54,7 +54,7 @@ public class JListAdapter extends AbstractListModel {
 			File[] files = d.listFiles();
 			Note note;
 			for (int i = 0; i < files.length; i++) {
-				Pattern pattern = Pattern.compile(".+.txt");
+				Pattern pattern = Pattern.compile(".+.yhb");
 				Matcher matcher = pattern.matcher(files[i].getName());
 				if(matcher.matches()){
 					note = new Note();
@@ -62,7 +62,6 @@ public class JListAdapter extends AbstractListModel {
 					note.setTitle(files[i].getName());
 					note.setFile(new File(files[i].getAbsolutePath()));
 					mNotes.add(note);
-					System.out.println(""+files[i].getName());
 				}
 				
 			}

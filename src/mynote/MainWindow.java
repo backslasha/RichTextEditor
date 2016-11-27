@@ -12,7 +12,12 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 import javax.swing.Action;
 import javax.swing.BorderFactory;
@@ -30,13 +35,13 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.text.StyledDocument;
 import javax.swing.text.StyledEditorKit;
 
+import models.JListAdapter;
 import bean.Note;
 
-import models.JListAdapter;
-
-import components.NoteTextArea;
+import components.NoteTextPane;
 import components.RowHeaderNumberView;
 
 public class MainWindow {
@@ -209,7 +214,7 @@ public class MainWindow {
 
 		item_undo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				NoteTextArea nat = (NoteTextArea) ((JScrollPane) mJTabbedPane
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
 						.getSelectedComponent()).getViewport().getView();
 				if (nat.undoManager.canUndo()) {
 					nat.undoManager.undo();
@@ -219,7 +224,7 @@ public class MainWindow {
 		item_redo.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				NoteTextArea nat = (NoteTextArea) ((JScrollPane) mJTabbedPane
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
 						.getSelectedComponent()).getViewport().getView();
 				if (nat.undoManager.canRedo()) {
 					nat.undoManager.redo();
@@ -250,7 +255,7 @@ public class MainWindow {
 		item_delete.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				NoteTextArea nat = (NoteTextArea) ((JScrollPane) mJTabbedPane
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
 						.getSelectedComponent()).getViewport().getView();
 				if (nat.getSelectedText() != null
 						&& !nat.getSelectedText().equals("")) {
@@ -262,7 +267,7 @@ public class MainWindow {
 		item_select_all.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				NoteTextArea nat = (NoteTextArea) ((JScrollPane) mJTabbedPane
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
 						.getSelectedComponent()).getViewport().getView();
 				nat.selectAll();
 
@@ -298,10 +303,10 @@ public class MainWindow {
 			public void actionPerformed(ActionEvent arg0) {
 				JScrollPane scp = (JScrollPane) mJTabbedPane
 						.getSelectedComponent();
-				Note note = ((NoteTextArea) scp.getViewport().getView())
+				Note note = ((NoteTextPane) scp.getViewport().getView())
 						.getNote();
 				if (note.getFile() != null) {
-					FileOutputStream fileOutputStream;
+					/*FileOutputStream fileOutputStream;
 					try {
 						fileOutputStream = new FileOutputStream(note
 								.getFilePath());
@@ -312,7 +317,9 @@ public class MainWindow {
 					} catch (Exception e) {
 						e.printStackTrace();
 						System.out.println("保存失败");
-					}
+					}*/
+					NoteTextPane ntp = (NoteTextPane) scp.getViewport().getView();
+					saveAsObj(ntp.getStyledDocument(), note.getFilePath());
 
 				}
 			}
@@ -320,7 +327,16 @@ public class MainWindow {
 		item_open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				FileDialog fileDialog = new FileDialog(mJFrame, "选择文件");
+				fileDialog.setFilenameFilter(new FilenameFilter() {
+
+					public boolean accept(File arg0, String arg1) {
+						if (arg1.matches(".+.yhb"))
+							return true;
+						return false;
+					}
+				});
 				fileDialog.setVisible(true);
+				
 
 				File file = null;
 				if (fileDialog.getFile() != null) {
@@ -348,8 +364,8 @@ public class MainWindow {
 
 				if (input != null) {
 					String title = !input.equals("") ? input : "未命名文本";
-					Note note = new Note(title + ".txt", mJListAdapter
-							.getWorkplace() + title + ".txt");
+					Note note = new Note(title + ".yhb", mJListAdapter
+							.getWorkplace() + title + ".yhb");
 					addNoteTab(note);
 
 					mJListAdapter.addNote(note);
@@ -369,7 +385,7 @@ public class MainWindow {
 				int result = chooser.showOpenDialog(mJFrame);
 				if (result == JFileChooser.APPROVE_OPTION) {
 					mJListAdapter = new JListAdapter(chooser.getSelectedFile()
-							.getAbsolutePath());
+							.getAbsolutePath() + "\\");
 					mJList.setBorder(BorderFactory.createTitledBorder("所有笔记"
 							+ "(" + mJListAdapter.getWorkplace() + ")"));
 
@@ -389,7 +405,7 @@ public class MainWindow {
 	}
 
 	private void addJMenu_style() {
-		JMenu jMenu_style = new JMenu("格式"+"(S)");
+		JMenu jMenu_style = new JMenu("格式" + "(S)");
 		jMenu_style.setMnemonic('S');
 
 		Action action = new StyledEditorKit.BoldAction();
@@ -419,18 +435,41 @@ public class MainWindow {
 		jMenu_style.addSeparator();
 
 		jMenu_style.add(new StyledEditorKit.ForegroundAction("Red", Color.red));
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Green", Color.green));
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Blue", Color.blue));
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Black", Color.black));
+		jMenu_style.add(new StyledEditorKit.ForegroundAction("Green",
+				Color.green));
+		jMenu_style
+				.add(new StyledEditorKit.ForegroundAction("Blue", Color.blue));
+		jMenu_style.add(new StyledEditorKit.ForegroundAction("Black",
+				Color.black));
 
 		mJMenuBar.add(jMenu_style);
 	}
 
 	private void addNoteTab(Note note) {
-		NoteTextArea nTextArea = new NoteTextArea(note);
+		NoteTextPane nTextArea = new NoteTextPane(note);
 		JScrollPane jsp = new JScrollPane(nTextArea);
 		jsp.setRowHeaderView(new RowHeaderNumberView(nTextArea));
 		mJTabbedPane.addTab(nTextArea.getNote().getTitle(), jsp);
 		mJTabbedPane.setSelectedComponent(jsp);
 	}
+
+	private void saveAsObj(StyledDocument doc, String completePath) {
+		File file = new File(completePath);
+		if (file.exists()) {
+			try {
+				file.createNewFile();
+				ObjectOutputStream oos = new ObjectOutputStream(
+						new FileOutputStream(file));
+				oos.writeObject(doc);
+				oos.flush();
+				oos.close();
+				System.out.println("保存成功");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.out.println("保存失败");
+			}
+		}
+	}
+
+	
 }

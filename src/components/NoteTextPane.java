@@ -3,18 +3,22 @@ package components;
 import java.awt.Insets;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Scanner;
 
 import javax.swing.JTextPane;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.event.UndoableEditListener;
+import javax.swing.text.StyledDocument;
 import javax.swing.undo.UndoManager;
 
 import bean.Note;
 
-
-public class NoteTextArea extends JTextPane implements MouseListener {
+public class NoteTextPane extends JTextPane implements MouseListener {
 	private static final long serialVersionUID = 1L;
 	private Note mNote;
 	public UndoManager undoManager;
@@ -27,7 +31,7 @@ public class NoteTextArea extends JTextPane implements MouseListener {
 		this.mNote = note;
 	}
 
-	public NoteTextArea(Note note) {
+	public NoteTextPane(Note note) {
 		mNote = note;
 		undoManager = new UndoManager();
 		this.getDocument().addUndoableEditListener(new UndoableEditListener() {
@@ -40,14 +44,9 @@ public class NoteTextArea extends JTextPane implements MouseListener {
 		setMargin(new Insets(15, 15, 15, 15));
 
 		if (mNote.getFile().exists()) {
-			try {
-				Scanner scan = new Scanner(mNote.getFile());
-				scan.useDelimiter("n#e*v%e%r&");
-				if (scan.hasNext())
-					setText(scan.next());
-				scan.close();
-			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
+			if (readFromObj(mNote.getFilePath()) != null) {
+				setStyledDocument(readFromObj(mNote.getFilePath()));
+				System.out.println("打开格式化文本成功！");
 			}
 		}
 	}
@@ -72,4 +71,30 @@ public class NoteTextArea extends JTextPane implements MouseListener {
 
 	}
 
+	private StyledDocument readFromObj(String completePath) {
+		File file = new File(completePath);
+		ObjectInputStream ois = null;
+		StyledDocument doc = null;
+		if (file.exists() && file.length()!=0) {
+			try {
+				ois = new ObjectInputStream(new FileInputStream(file));
+				doc = (StyledDocument) ois.readObject();
+			} catch (IOException e) {
+				 e.printStackTrace();
+				System.out.println("文件打开失败！");
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+				System.out.println("读取文件格式错误！");
+			} finally {
+				if (ois != null) {
+					try {
+						ois.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		return doc;
+	}
 }
