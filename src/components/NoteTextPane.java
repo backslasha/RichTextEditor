@@ -20,6 +20,15 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 	private static final long serialVersionUID = 1L;
 	private Note mNote;
 	public UndoManager undoManager;
+	private boolean isChange = false;
+
+	public boolean isChange() {
+		return isChange;
+	}
+
+	public void setChange(boolean isChange) {
+		this.isChange = isChange;
+	}
 
 	public Note getNote() {
 		return mNote;
@@ -31,15 +40,8 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 
 	public NoteTextPane(Note note) {
 		mNote = note;
-		
-		undoManager =new UndoManager();
-		getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
-			
-			public void undoableEditHappened(UndoableEditEvent arg0) {
-				undoManager.addEdit(arg0.getEdit());
-				
-			}
-		});
+
+		undoManager = new UndoManager();
 
 		addMouseListener(this);
 		setMargin(new Insets(15, 15, 15, 15));
@@ -50,6 +52,12 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 				System.out.println("打开格式化文本成功！");
 			}
 		}
+		getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
+
+			public void undoableEditHappened(UndoableEditEvent arg0) {
+				undoManager.addEdit(arg0.getEdit());
+			}
+		});
 	}
 
 	public void mouseClicked(MouseEvent e) {
@@ -76,12 +84,12 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 		File file = new File(completePath);
 		ObjectInputStream ois = null;
 		StyledDocument doc = null;
-		if (file.exists() && file.length()!=0) {
+		if (file.exists() && file.length() != 0) {
 			try {
 				ois = new ObjectInputStream(new FileInputStream(file));
 				doc = (StyledDocument) ois.readObject();
 			} catch (IOException e) {
-				 e.printStackTrace();
+				e.printStackTrace();
 				System.out.println("文件打开失败！");
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
@@ -98,4 +106,6 @@ public class NoteTextPane extends JTextPane implements MouseListener {
 		}
 		return doc;
 	}
+
+
 }
