@@ -35,6 +35,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
@@ -49,6 +50,7 @@ import models.JListAdapter;
 import bean.Note;
 
 import components.NoteTextPane;
+
 //import components.RowHeaderNumberView;
 
 public class MainWindow {
@@ -61,7 +63,7 @@ public class MainWindow {
 	private JLabel mJLabel;
 	private JSplitPane mJSplitPane_lr;
 	private JToolBar mJToolBar;
-	private JButton button_undo, button_redo, button_save;//为了监控状态设置为全局变量
+	private JButton button_undo, button_redo, button_save;// 为了监控状态设置为全局变量
 
 	public MainWindow() {
 		mJFrame = new JFrame();
@@ -88,6 +90,7 @@ public class MainWindow {
 
 	/**
 	 * 创建主视图：列表+（文本pane+J标签）的JSplitPane
+	 * 
 	 * @return 列表+（文本pane+J标签）的JSplitPane
 	 */
 	private JSplitPane createJSplitPane_lr() {
@@ -103,9 +106,10 @@ public class MainWindow {
 		JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
 				false, new JScrollPane(mJList), jSplitPane_tb);
 		jSplitPane.setDividerSize(3);
-
+		
 		return jSplitPane;
 	}
+
 	/**
 	 * 初始化JLabel
 	 */
@@ -126,25 +130,25 @@ public class MainWindow {
 					return;
 				}
 				JPopupMenu jPopupMenu = new JPopupMenu();
-				JMenuItem menuItem2 = new JMenuItem("关闭");
-				JMenuItem menuItem3 = new JMenuItem("关闭所有");
+				JMenuItem item_close = new JMenuItem("关闭");
+				JMenuItem item_close_all = new JMenuItem("关闭所有");
 
-				menuItem2
+				item_close
 						.addActionListener(new java.awt.event.ActionListener() { // 关闭的事件监听
 							public void actionPerformed(ActionEvent e) {
 								mJTabbedPane.remove(mJTabbedPane
 										.getSelectedComponent());
 							}
 						});
-				menuItem3
+				item_close_all
 						.addActionListener(new java.awt.event.ActionListener() { // 关闭所有的事件监听
 							public void actionPerformed(ActionEvent e) {
 								mJTabbedPane.removeAll();
 							}
 						});
 
-				jPopupMenu.add(menuItem2);
-				jPopupMenu.add(menuItem3);
+				jPopupMenu.add(item_close);
+				jPopupMenu.add(item_close_all);
 				jPopupMenu.show(mJTabbedPane, e.getX(), e.getY());
 
 			}
@@ -180,7 +184,7 @@ public class MainWindow {
 	 */
 	private void initJMenuBar() {
 		mJMenuBar = new JMenuBar();
-		
+
 		/**
 		 * 文件：
 		 */
@@ -208,7 +212,7 @@ public class MainWindow {
 		jMenu_file.add(item_choose_workplace);
 
 		mJMenuBar.add(jMenu_file);
-		
+
 		/**
 		 * 编辑：
 		 */
@@ -306,6 +310,92 @@ public class MainWindow {
 		mJMenuBar.add(jMenu_edit);
 
 		/**
+		 * 格式：
+		 */
+		JMenu jMenu_style = new JMenu("格式" + "(S)");
+		jMenu_style.setMnemonic('S');
+
+		{
+			Action action = new StyledEditorKit.BoldAction();
+			action.putValue(Action.NAME, "加粗");
+			action.putValue(Action.ACCELERATOR_KEY,
+					KeyStroke.getKeyStroke("ctrl B"));
+			jMenu_style.add(action);
+
+			action = new StyledEditorKit.UnderlineAction();
+			action.putValue(Action.NAME, "下划线");
+			action.putValue(Action.ACCELERATOR_KEY,
+					KeyStroke.getKeyStroke("ctrl U"));
+			jMenu_style.add(action);
+
+			action = new StyledEditorKit.ItalicAction();
+			action.putValue(Action.NAME, "倾斜");
+			action.putValue(Action.ACCELERATOR_KEY,
+					KeyStroke.getKeyStroke("ctrl I"));
+			jMenu_style.add(action);
+		}
+
+		jMenu_style.addSeparator();
+		{
+			JMenu jMenu_size = new JMenu("大小");
+
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("12", 12));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("14", 14));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("16", 16));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("18", 18));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("20", 20));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("22", 22));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("24", 24));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("26", 26));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("28", 28));
+
+			jMenu_style.add(jMenu_size);
+		}
+		jMenu_style.addSeparator();
+
+		{
+			JMenu jMenu_font = new JMenu("字体");
+
+			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
+					"Serif", "Serif")));
+			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
+					"宋体", "宋体")));
+			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
+					"华文行楷", "华文行楷")));
+			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
+					"方正舒体", "方正舒体")));
+			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
+					"Calibri", "Calibri")));
+
+			jMenu_style.add(jMenu_font);
+
+		}
+
+		jMenu_style.addSeparator();
+
+		{
+			JMenu jMenu_color = new JMenu("字体颜色");
+
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("红色",
+					Color.red));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("橙色",
+					Color.orange));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("黄色",
+					Color.yellow));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("绿色",
+					Color.green));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("青色",
+					Color.cyan));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("蓝色",
+					Color.blue));
+			jMenu_color.add(new StyledEditorKit.ForegroundAction("粉红",
+					Color.PINK));
+
+			jMenu_style.add(jMenu_color);
+
+		}
+		mJMenuBar.add(jMenu_style);
+		/**
 		 * 设置：
 		 */
 		JMenu jMenu_setting = new JMenu("设置(T)");
@@ -324,9 +414,9 @@ public class MainWindow {
 		// jMenu_setting.add(DefaultEditorKit.selectAllAction);
 
 		mJMenuBar.add(jMenu_setting);
-		
-		
-		/**关于：
+
+		/**
+		 * 关于：
 		 * 
 		 */
 		JMenu jMenu_about = new JMenu("关于(H)");
@@ -344,84 +434,40 @@ public class MainWindow {
 		jMenu_about.add(item_about_mynote);
 
 		mJMenuBar.add(jMenu_about);
-		
-		
-		/**
-		 * 格式：
-		 */
-		JMenu jMenu_style = new JMenu("格式" + "(S)");
-		jMenu_style.setMnemonic('S');
 
-		Action action = new StyledEditorKit.BoldAction();
-		action.putValue(Action.NAME, "加粗");
-		action.putValue(Action.ACCELERATOR_KEY,
-				KeyStroke.getKeyStroke("ctrl B"));
-		jMenu_style.add(action);
-
-		action = new StyledEditorKit.UnderlineAction();
-		action.putValue(Action.NAME, "下划线");
-		action.putValue(Action.ACCELERATOR_KEY,
-				KeyStroke.getKeyStroke("ctrl U"));
-		jMenu_style.add(action);
-
-		action = new StyledEditorKit.ItalicAction();
-		action.putValue(Action.NAME, "倾斜");
-		action.putValue(Action.ACCELERATOR_KEY,
-				KeyStroke.getKeyStroke("ctrl I"));
-		jMenu_style.add(action);
-
-		jMenu_style.addSeparator();
-
-		jMenu_style.add(new StyledEditorKit.FontSizeAction("12", 12));
-		jMenu_style.add(new StyledEditorKit.FontSizeAction("14", 14));
-		jMenu_style.add(new StyledEditorKit.FontSizeAction("18", 18));
-
-		jMenu_style.addSeparator();
-
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Red", Color.red));
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Green",
-				Color.green));
-		jMenu_style
-				.add(new StyledEditorKit.ForegroundAction("Blue", Color.blue));
-		jMenu_style.add(new StyledEditorKit.ForegroundAction("Black",
-				Color.black));
-
-		mJMenuBar.add(jMenu_style);
-		
 	}
 
-	
 	/**
-	 * 根据note，增加一个新的tab页：JScrollPane(nTextPane)
-	 * 设置选项卡切换时监听：更新“保存”、“撤销”和“重做”的三个按钮
+	 * 根据note，增加一个新的tab页：JScrollPane(nTextPane) 设置选项卡切换时监听：更新“保存”、“撤销”和“重做”的三个按钮
 	 * 设置nTextPane文本StyledDocument改变时监听：更新“保存”、“撤销”和“重做”的三个按钮
-	 * @param note 
+	 * 
+	 * @param note
 	 */
 	protected void addNoteTab(Note note) {
 		NoteTextPane nTextPane = new NoteTextPane(note);
 		JScrollPane jsp = new JScrollPane(nTextPane);
-		//jsp.setRowHeaderView(new RowHeaderNumberView(nTextPane));
+		// jsp.setRowHeaderView(new RowHeaderNumberView(nTextPane));
 		mJTabbedPane.addTab(nTextPane.getNote().getTitle(), jsp);
 		mJTabbedPane.setSelectedComponent(jsp);
 		mJTabbedPane.addChangeListener(new ChangeListener() {
 
 			public void stateChanged(ChangeEvent arg0) {
-				if (mJTabbedPane.getTabCount() == 0){
+				if (mJTabbedPane.getTabCount() == 0) {
 					button_undo.setEnabled(false);
 					button_redo.setEnabled(false);
 					button_save.setEnabled(false);
 					return;
 				}
 				checkUndoButton();
-				 checkSaveButton();
-				 checkRedoButton();
+				checkSaveButton();
+				checkRedoButton();
 			}
 		});
 		nTextPane.getStyledDocument().addDocumentListener(
 				new DocumentListener() {
 
 					public void removeUpdate(DocumentEvent arg0) {
-						
+
 						setChange();
 						checkSaveButton();
 						checkUndoButton();
@@ -452,15 +498,19 @@ public class MainWindow {
 								.getSelectedComponent()).getViewport()
 								.getView();
 						ntp.setChange(true);
-						System.out.println("ntp.undoManager.canUndo(): "+ntp.undoManager.canUndo());
+						System.out.println("ntp.undoManager.canUndo(): "
+								+ ntp.undoManager.canUndo());
 					}
 				});
 	}
 
 	/**
 	 * 将StyledDocument序列化保存到本地文件，视为***.yhb格式的文本
-	 * @param doc StyledDocument对象
-	 * @param completePath	保存的完整路径/***.yhb
+	 * 
+	 * @param doc
+	 *            StyledDocument对象
+	 * @param completePath
+	 *            保存的完整路径/***.yhb
 	 */
 	protected void saveAsObj(StyledDocument doc, String completePath) {
 		File file = new File(completePath);
@@ -490,9 +540,9 @@ public class MainWindow {
 		JButton button = null;
 		// new a file button
 		button = new JButton(new NewFileAction());
-		button.setToolTipText("新建");//tip
-		button.setBorderPainted(false);//取消按钮自带的边框
-		button.setFocusPainted(false);//取消按钮选中时自带的边框
+		button.setToolTipText("新建");// tip
+		button.setBorderPainted(false);// 取消按钮自带的边框
+		button.setFocusPainted(false);// 取消按钮选中时自带的边框
 		button.setIcon(new ImageIcon(
 				"D:\\javasoft\\workplace\\MyNote/src/img/new.png"));
 		mJToolBar.add(button);
@@ -542,18 +592,18 @@ public class MainWindow {
 	 * 更新Undo按钮的状态
 	 */
 	protected void checkUndoButton() {
-			
+
 		NoteTextPane ntp = (NoteTextPane) ((JScrollPane) mJTabbedPane
 				.getSelectedComponent()).getViewport().getView();
 		button_undo.setEnabled(ntp.undoManager.canUndo());
 	}
 
-	protected void checkRedoButton(){
+	protected void checkRedoButton() {
 		NoteTextPane ntp = (NoteTextPane) ((JScrollPane) mJTabbedPane
 				.getSelectedComponent()).getViewport().getView();
 		button_redo.setEnabled(ntp.undoManager.canRedo());
 	}
-	
+
 	protected void checkSaveButton() {
 		NoteTextPane ntp = (NoteTextPane) ((JScrollPane) mJTabbedPane
 				.getSelectedComponent()).getViewport().getView();
