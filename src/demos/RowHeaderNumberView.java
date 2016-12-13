@@ -1,4 +1,4 @@
-package components;
+package demos;
 
 import java.awt.Color;
 import java.awt.Insets;

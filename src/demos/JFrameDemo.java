@@ -2,6 +2,8 @@ package demos;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.Icon;
@@ -28,6 +30,12 @@ public class JFrameDemo {
 		JButton jButton2 = new JButton("JButton2");
 		JButton jButton3 = new JButton("JButton3");
 		
+		jButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent arg0) {
+				
+			}
+		});
 		JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,jButton,jButton1);
 		jSplitPane.setDividerSize(10);
 		jSplitPane.setOneTouchExpandable(true);

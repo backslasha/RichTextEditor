@@ -5,6 +5,9 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FileDialog;
+import java.awt.GraphicsEnvironment;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -13,6 +16,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -35,7 +40,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
@@ -50,8 +54,6 @@ import models.JListAdapter;
 import bean.Note;
 
 import components.NoteTextPane;
-
-//import components.RowHeaderNumberView;
 
 public class MainWindow {
 	private JFrame mJFrame;
@@ -106,7 +108,7 @@ public class MainWindow {
 		JSplitPane jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
 				false, new JScrollPane(mJList), jSplitPane_tb);
 		jSplitPane.setDividerSize(3);
-		
+
 		return jSplitPane;
 	}
 
@@ -153,13 +155,28 @@ public class MainWindow {
 
 			}
 		});
+		mJTabbedPane.addChangeListener(new ChangeListener() {
+
+			public void stateChanged(ChangeEvent arg0) {
+				// 选项卡切换时会调用此方法，当选项卡个数为0时，getSelectedIndex()==-1
+				if (((JTabbedPane) arg0.getSource()).getSelectedIndex() != -1) {
+					checkUndoButton();
+					checkSaveButton();
+					checkRedoButton();
+				} else {
+					button_undo.setEnabled(false);
+					button_redo.setEnabled(false);
+					button_save.setEnabled(false);
+				}
+			}
+		});
 	}
 
 	/**
 	 * 初始化列表
 	 */
 	private void initJList() {
-		mJListAdapter = new JListAdapter("E:\\作业文档\\");
+		mJListAdapter = new JListAdapter("E:\\MyNote\\");
 
 		mJList = new JList<Note>(mJListAdapter);
 		mJList.setFixedCellHeight(30);
@@ -169,7 +186,6 @@ public class MainWindow {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
-					mJListAdapter.setReturnObject();
 					addNoteTab(mJList.getSelectedValue());
 				}
 			}
@@ -261,21 +277,25 @@ public class MainWindow {
 		item_cut.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
+						.getSelectedComponent()).getViewport().getView();
+				nat.cut();
 			}
 		});
 		item_copy.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				// TODO Auto-generated method stub
-
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
+						.getSelectedComponent()).getViewport().getView();
+				nat.copy();
 			}
 		});
 		item_paste.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				// TODO Auto-generated method stub
-
+				NoteTextPane nat = (NoteTextPane) ((JScrollPane) mJTabbedPane
+						.getSelectedComponent()).getViewport().getView();
+				nat.paste();
 			}
 		});
 		item_delete.addActionListener(new ActionListener() {
@@ -348,6 +368,10 @@ public class MainWindow {
 			jMenu_size.add(new StyledEditorKit.FontSizeAction("24", 24));
 			jMenu_size.add(new StyledEditorKit.FontSizeAction("26", 26));
 			jMenu_size.add(new StyledEditorKit.FontSizeAction("28", 28));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("32", 32));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("48", 48));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("64", 64));
+			jMenu_size.add(new StyledEditorKit.FontSizeAction("128", 128));
 
 			jMenu_style.add(jMenu_size);
 		}
@@ -356,16 +380,17 @@ public class MainWindow {
 		{
 			JMenu jMenu_font = new JMenu("字体");
 
-			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
-					"Serif", "Serif")));
-			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
-					"宋体", "宋体")));
-			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
-					"华文行楷", "华文行楷")));
-			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
-					"方正舒体", "方正舒体")));
-			jMenu_font.add(new JMenuItem(new StyledEditorKit.FontFamilyAction(
-					"Calibri", "Calibri")));
+			GraphicsEnvironment ge = GraphicsEnvironment
+					.getLocalGraphicsEnvironment();
+			String[] fontList = ge.getAvailableFontFamilyNames();
+			for (int i = 0; i <= fontList.length - 1; i++) {
+				// 只把中文字体加进去，加上英文的太多了
+				if (fontList[i].matches("^[\u4e00-\u9fa5].*"))
+					jMenu_font.add(new JMenuItem(
+							new StyledEditorKit.FontFamilyAction(fontList[i],
+									fontList[i])));
+
+			}
 
 			jMenu_style.add(jMenu_font);
 
@@ -449,20 +474,6 @@ public class MainWindow {
 		// jsp.setRowHeaderView(new RowHeaderNumberView(nTextPane));
 		mJTabbedPane.addTab(nTextPane.getNote().getTitle(), jsp);
 		mJTabbedPane.setSelectedComponent(jsp);
-		mJTabbedPane.addChangeListener(new ChangeListener() {
-
-			public void stateChanged(ChangeEvent arg0) {
-				if (mJTabbedPane.getTabCount() == 0) {
-					button_undo.setEnabled(false);
-					button_redo.setEnabled(false);
-					button_save.setEnabled(false);
-					return;
-				}
-				checkUndoButton();
-				checkSaveButton();
-				checkRedoButton();
-			}
-		});
 		nTextPane.getStyledDocument().addDocumentListener(
 				new DocumentListener() {
 
@@ -543,15 +554,13 @@ public class MainWindow {
 		button.setToolTipText("新建");// tip
 		button.setBorderPainted(false);// 取消按钮自带的边框
 		button.setFocusPainted(false);// 取消按钮选中时自带的边框
-		button.setIcon(new ImageIcon(
-				"D:\\javasoft\\workplace\\MyNote/src/img/new.png"));
+		button.setIcon(new ImageIcon("src/img/new.png"));
 		mJToolBar.add(button);
 
 		// open a file button
 		button = new JButton(new OpenFileAction());
 		button.setToolTipText("打开");
-		button.setIcon(new ImageIcon(
-				"D:\\javasoft\\workplace\\MyNote/src/img/open.png"));
+		button.setIcon(new ImageIcon("src/img/open.png"));
 		button.setBorderPainted(false);
 		button.setFocusPainted(false);
 		mJToolBar.add(button);
@@ -559,8 +568,7 @@ public class MainWindow {
 		// save a file button
 		button_save = new JButton(new SaveFileAction());
 		button_save.setEnabled(false);
-		button_save.setIcon(new ImageIcon(
-				"D:\\javasoft\\workplace\\MyNote/src/img/save.png"));
+		button_save.setIcon(new ImageIcon("src/img/save.png"));
 		button_save.setToolTipText("保存");
 		button_save.setBorderPainted(false);
 		button_save.setFocusPainted(false);
@@ -569,8 +577,7 @@ public class MainWindow {
 		// undo button
 		button_undo = new JButton(new UndoAction());
 		button_undo.setEnabled(false);
-		button_undo.setIcon(new ImageIcon(
-				"D:\\javasoft\\workplace\\MyNote/src/img/undo.png"));
+		button_undo.setIcon(new ImageIcon("src/img/undo.png"));
 		button_undo.setToolTipText("撤销");
 		button_undo.setBorderPainted(false);
 		button_undo.setFocusPainted(false);
@@ -579,8 +586,7 @@ public class MainWindow {
 		// redo button
 		button_redo = new JButton(new RedoAction());
 		button_redo.setEnabled(false);
-		button_redo.setIcon(new ImageIcon(
-				"D:\\javasoft\\workplace\\MyNote/src/img/redo.png"));
+		button_redo.setIcon(new ImageIcon("src/img/redo.png"));
 		button_redo.setToolTipText("重做");
 		button_redo.setBorderPainted(false);
 		button_redo.setFocusPainted(false);
@@ -623,8 +629,11 @@ public class MainWindow {
 
 			if (input != null) {
 				String title = !input.equals("") ? input : "未命名文本";
-				Note note = new Note(title + ".yhb",
-						mJListAdapter.getWorkplace() + title + ".yhb");
+				if (!title.matches(".+.(txt|java)")) {
+					title = title + ".yhb";
+				}
+				Note note = new Note(title, mJListAdapter.getWorkplace()
+						+ title);
 				addNoteTab(note);
 
 				mJListAdapter.addNote(note);
@@ -649,7 +658,7 @@ public class MainWindow {
 			fileDialog.setFilenameFilter(new FilenameFilter() {
 
 				public boolean accept(File arg0, String arg1) {
-					if (arg1.matches(".+.yhb"))
+					if (arg1.matches(".+.(txt|yhb}"))
 						return true;
 					return false;
 				}
@@ -686,6 +695,27 @@ public class MainWindow {
 		public void actionPerformed(ActionEvent arg0) {
 			JScrollPane scp = (JScrollPane) mJTabbedPane.getSelectedComponent();
 			Note note = ((NoteTextPane) scp.getViewport().getView()).getNote();
+
+			// 对待纯文本时
+			if (note.getTitle().matches(".+.(txt|java)")) {
+				try {
+					FileOutputStream fos = new FileOutputStream(
+							note.getFilePath());
+					String str = ((NoteTextPane) scp.getViewport().getView())
+							.getText();
+					fos.write(str.getBytes());
+					fos.close();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					System.out.println("保存为纯文本格式成功！");
+					button_save.setEnabled(false);
+				}
+				return;
+			}
+
 			if (note.getFile() != null) {
 				NoteTextPane ntp = (NoteTextPane) scp.getViewport().getView();
 				saveAsObj(ntp.getStyledDocument(), note.getFilePath());
@@ -721,7 +751,7 @@ public class MainWindow {
 
 	}
 
-	class UndoAction extends AbstractAction {
+	class UndoAction extends AbstractAction{
 
 		/**
 		 * 

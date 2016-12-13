@@ -11,6 +11,7 @@ import javax.swing.JList;
 import bean.Note;
 
 
+@SuppressWarnings("rawtypes")
 public class JListAdapter extends AbstractListModel {
 	private static final long serialVersionUID = 1L;
 	private String workplace = "";
@@ -23,12 +24,7 @@ public class JListAdapter extends AbstractListModel {
 	}
 
 	private Vector<Note> mNotes;
-	private boolean shouldReturnObject = false;
 	private JList<?> mJList; 
-	
-	public void setReturnObject(){
-		shouldReturnObject = true;
-	}
 	
 	public void addNote(Note note){
 		if(!isAlreadyExist(note)){
@@ -54,7 +50,7 @@ public class JListAdapter extends AbstractListModel {
 			File[] files = d.listFiles();
 			Note note;
 			for (int i = 0; i < files.length; i++) {
-				Pattern pattern = Pattern.compile(".+.yhb");
+				Pattern pattern = Pattern.compile(".+.(yhb|txt|java)");
 				Matcher matcher = pattern.matcher(files[i].getName());
 				if(matcher.matches()){
 					note = new Note();
@@ -68,33 +64,14 @@ public class JListAdapter extends AbstractListModel {
 		}
 	}
 
+	
 	public Object getElementAt(int arg0) {
-		if (shouldReturnObject) {
-			shouldReturnObject = false;
-			return mNotes.get(arg0);
-		}
-		return (arg0+1)+". "+mNotes.get(arg0).getTitle();
+		return mNotes.get(arg0);
 	}
 
 	public int getSize() {
 		return mNotes.size();
 	}
-
-	public void notifyDataSetChange() {
-		File d = new File(workplace);
-		if (d.exists() && d.isDirectory()) {
-			File[] files = d.listFiles();
-			Note note;
-			for (int i = 0; i < files.length; i++) {
-				note = new Note();
-				note.setFilePath(files[i].getAbsolutePath());
-				note.setTitle(files[i].getName());
-				note.setFile(new File(files[i].getAbsolutePath()));
-				mNotes.add(note);
-			}
-		}
-		mJList.validate();
-		System.out.println("DataSetChange");
-	}
+	
 
 }
